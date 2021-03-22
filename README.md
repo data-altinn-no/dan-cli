@@ -59,7 +59,7 @@ succesfully send requests to data.altinn.no
 ## HttpClientConfig
 This section sets up the basic usage of the http client that will handle requests to and responses from data.altinn.no. This section must specify the enviroment 
 
-``` json
+``` jsonc
 "HttpClientConfig": {
     "SubscriptionKey": "xxxxxxxx", // Your subscription key
     "BaseAddress": "https://apim-nadobe-dev.azure-api.net/v1/" // URL to the environment the requests will be sent to
@@ -74,7 +74,7 @@ This section sets up the basic usage of the http client that will handle request
 ## CertificateConfig
 This section defines where the enterprise certificate is installed on your local machine, and which certificate the client should use to authenticate itself to data.altinn.no
 
-``` json
+``` jsonc
  "CertificateConfig": {
     "Thumbprint": "xxxxxxxx",           // The Thumbprint of your certificate
     "StoreLocation": "LocalMachine",    // The location of the certificate store where the certificate is installed. Allowed values are "LocalMachine" and "CurrentUser"
@@ -84,7 +84,7 @@ This section defines where the enterprise certificate is installed on your local
 ```
 
 ## MaskinportenConfig
-``` json
+``` jsonc
     "CertificateConfig": {
         "token": "xxxxxxxxxxxxxxxxx"    // JWT token received from Maskinporten    
     }
@@ -93,7 +93,7 @@ This section defines where the enterprise certificate is installed on your local
 ## RequestConfig
 This section is used to decide what type of request that will be sent to data.altinn.no
 
-``` json
+``` jsonc
 "RequestConfig": {
     "requestType": "Authorize"
   }
@@ -126,7 +126,7 @@ This section defines a request for access to a dataset in data.altinn.no.
 
 The most basic request is for publically available information and can be configured like this:
 
-``` json
+``` jsonc
 {
   "Accreditation": {
     "requestor": "974760673",   // Organization number of the entity making the request (must match the org. number the Enterprise Certificate is issued to)
@@ -143,7 +143,7 @@ The most basic request is for publically available information and can be config
 
 To request access to a dataset that requires the subject of the request to give consent to the data being delivered:
 
-``` json
+``` jsonc
 {
   "Accreditation": {
     "requestor": "974760673",
@@ -167,7 +167,7 @@ When a request for accreditation has been processed, altinn.data.no returns a fu
 for the dataset described by the accreditation object.
 
 To pass this id to the client, configure the Accreditation section like this:
-``` json
+``` jsonc
 {
   "Accreditation": {
       accreditation_id: "xxxx-xxxxx-xxxxx-xxxxx" // The id of a valid accreditation
