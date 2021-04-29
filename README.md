@@ -5,9 +5,8 @@ client is twofold: To demonstrate how to effectively utilize the various functio
 # Requirements
 To use data.altinn.no and this client you will need the following
 1. A subscription key for the data.altinn.no API. A subscription key can be obtained at [data.altinn.no/](https://data.altinn.no/). For access to be granted you must describe how you intend to use the data obtained from data.altinn.no and which data-sets you request access too. 
-2. An enterprise certificate or a JWT token from Maskinporten. 
-    - An Enterprise Certificate is a certificate that includes the organization number for your organization. Your organization must be registered in the Norwegian Entity Registry (Enhetsregisteret). A valid         enterprise certificate can be ordered from Buypass or Comfides
-
+2. Configure a client in Maskinporten. In order to get a Maskinporten access token, you will need a Enterprise Certificate
+    - An Enterprise Certificate is a certificate that includes the organization number for your organization. Your organization must be registered in the Norwegian Entity Registry (Enhetsregisteret). A valid enterprise certificate can be ordered from Buypass or Commfides
     - Maskinporten is a solution that guarantees the identity of entities exchanging data. It is the preferred method for machine to machine authentication [Information in Norwegian](https://samarbeid.digdir.no/maskinporten/maskinporten/25).   
 3. Net Core 3.1 (or later) SDK or Visual Studio 2019
 
@@ -62,11 +61,9 @@ This section sets up the basic usage of the http client that will handle request
 ``` jsonc
 "HttpClientConfig": {
     "SubscriptionKey": "xxxxxxxx", // Your subscription key
-    "BaseAddress": "https://apim-nadobe-dev.azure-api.net/v1/" // URL to the environment the requests will be sent to
-                                                               // Dev    : 'https://apim-nadobe-dev.azure-api.net/v1/'
-                                                               // QA     : 'https://apim-nadobe-qa.azure-api.net'
-                                                               // Staging: 'https://apim-nadobe-staging.azure-api.net'
-                                                               // Prod   : 'https://api.data.altinn.no'
+    "BaseAddress": "https://api.data.altinn.no/v1/" // URL to the environment the requests will be sent to
+                                                               // Test : 'https://test-api.data.altinn.no/v1/'
+                                                               // Prod : 'https://api.data.altinn.no/v1/'
 
   }
 ```
@@ -78,16 +75,20 @@ This section defines where the enterprise certificate is installed on your local
  "CertificateConfig": {
     "Thumbprint": "xxxxxxxx",           // The Thumbprint of your certificate
     "StoreLocation": "LocalMachine",    // The location of the certificate store where the certificate is installed. Allowed values are "LocalMachine" and "CurrentUser"
-    "StoreName": "My"                   // The name of the certificate store where the certificate is installed. Allowed values are "My", "Root" and "CertificateAuthority".
-                                        // Note that in vast majority of cases the certificate should be installed in the certificate store called "Personal" and the StoreName should be set to "My"
-  }
+    "StoreName": "My",                  // The name of the certificate store where the certificate is installed. Allowed values are "My", "Root" and "CertificateAuthority".
+                                        // Note that in vast majority of cases the certificate should be installed in the certificate store called "LocalMachine" and the StoreName should be set to "My"
+    "Pkcs12FilePath": "c:/cert.pfx",    // If you are not using Windows, you can supply a PKCS#12 file (usually *.pfx or *.p12) instead. Full path here. Leave "Thumbprint" empty to use.
+    "Pkcs12FileSecret": "secret"        // Secret used to protect private key in PKCS#12-file
+ }
 ```
 
 ## MaskinportenConfig
 ``` jsonc
-    "CertificateConfig": {
-        "token": "xxxxxxxxxxxxxxxxx"    // JWT token received from Maskinporten    
-    }
+ "MaskinportenConfig": {
+    "ClientId": "xxxxxx",               // Client-id as provided by Maskinporten. 
+    "Scopes": "altinn:dataaltinnno",    // What scopes you request. Additional ones can be suppplied, seperated by space
+    "Environment": "ver2"               // "ver2" = test environment, "prod" = production
+ }
 ```
 
 ## RequestConfig
@@ -96,7 +97,7 @@ This section is used to decide what type of request that will be sent to data.al
 ``` jsonc
 "RequestConfig": {
     "requestType": "Authorize"
-  }
+}
 ```
 
 ### Supported requestTypes:

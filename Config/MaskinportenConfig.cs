@@ -4,8 +4,10 @@ using System.Text;
 
 namespace dan_client_dotnet.Config
 {
-    class MaskinportenConfig
+    public class MaskinportenConfig
     {
-        public string token { get; set; }
+        public string ClientId { get; set; }
+        public string Scopes { get; set; }
+        public string Environment { get; set; }
     }
 }

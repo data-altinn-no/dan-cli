@@ -15,12 +15,15 @@ namespace dan_client_dotnet.Services
     {
         private HttpClient httpClient { get; set; }
         private AccreditationService _accreditationService { get; set; }
+        private readonly MaskinportenService _maskinportenService;
         private readonly AccreditationConfig _accreditation;
         private readonly RequestConfig _evidenceRequest;
 
-        public RequestService(IHttpClientFactory httpClientFactory, IOptions<AccreditationConfig> accreditation, IOptions<RequestConfig> evidenceRequest, AccreditationService accreditationService)
+
+        public RequestService(IHttpClientFactory httpClientFactory, IOptions<AccreditationConfig> accreditation, IOptions<RequestConfig> evidenceRequest, AccreditationService accreditationService, MaskinportenService maskinportenService)
         {
             httpClient = httpClientFactory.CreateClient();
+            _maskinportenService = maskinportenService;            
             _accreditationService = accreditationService;
             _accreditation = accreditation.Value;
             _evidenceRequest = evidenceRequest.Value;
@@ -28,6 +31,9 @@ namespace dan_client_dotnet.Services
 
         public async Task<string> sendRequest()
         {
+            var token = await _maskinportenService.GetAccessToken();
+            httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
             var request = GetRequestInfo(_evidenceRequest.requestType);
 
             if(request.action == "GET")
@@ -82,7 +88,7 @@ namespace dan_client_dotnet.Services
         {
             var result = await httpClient.DeleteAsync(endpoint);
             var response = await result.Content.ReadAsStringAsync();
-            return response;
+            return result.StatusCode == System.Net.HttpStatusCode.NoContent ? "204 received, deletion was successful" : response;
         }
 
         public async Task<string> Demo()
@@ -95,9 +101,9 @@ namespace dan_client_dotnet.Services
             Console.WriteLine(JsonConvert.SerializeObject(_accreditation, Formatting.Indented));
             _evidenceRequest.requestType = "Authorize";
             var acc = await sendRequest();
-            Console.WriteLine("Response from authentication call:");
-            Console.WriteLine(JsonConvert.SerializeObject(acc, Formatting.Indented));
+            PrettyPrint(acc);
 
+            Console.WriteLine("Pausing ...");
             Thread.Sleep(3000);
 
             // Store the accreditation id for use in subsequent calls. When using this client to run individual calls agains data.altinn.no the
@@ -106,24 +112,26 @@ namespace dan_client_dotnet.Services
             WriteHeader("\n\nCall to verify that the accreditation created in the previous step is valid and requests the correct data:");
             Console.WriteLine("Sending GET request to " + httpClient.BaseAddress + "evidence/" + _accreditation.accreditationId);
             _evidenceRequest.requestType = "GetAccreditation";
-            Console.WriteLine("Response from get accreditation call:");
-            Console.WriteLine(JsonConvert.SerializeObject(await sendRequest(), Formatting.Indented));
+            PrettyPrint(await sendRequest());
 
+            Console.WriteLine("Pausing ...");
             Thread.Sleep(5000);
 
             WriteHeader("\n\nCall to retrieve the data specified by the accreditation:");
             Console.WriteLine("Sending GET request to " + httpClient.BaseAddress + "evidence/" + _accreditation.accreditationId + "/UnitBasicInformation\n");
             _evidenceRequest.requestType = "GetEvidence";
-            Console.WriteLine("Response from get evidence call:");
-            Console.WriteLine(JsonConvert.SerializeObject(await sendRequest(), Formatting.Indented));
+            PrettyPrint(await sendRequest());
 
+            Console.WriteLine("Pausing ...");
             Thread.Sleep(5000);
 
             WriteHeader("\n\nClean up by making call to delete the accreditation after the data has been retrieved:");
-            Console.WriteLine("Sending DELETE request to " + httpClient.BaseAddress + "accreditations / " + _accreditation.accreditationId);
+            Console.WriteLine("Sending DELETE request to " + httpClient.BaseAddress + "accreditations/" + _accreditation.accreditationId);
             _evidenceRequest.requestType = "DeleteAccreditation";
-            Console.WriteLine("Response from delete accreditation call:");
+            Console.WriteLine(await sendRequest());
 
+            Console.WriteLine("");
+            Console.WriteLine("Demo complete, hit CTRL-C to exit");
             return "";
         }
 
@@ -152,6 +160,13 @@ namespace dan_client_dotnet.Services
                     break;
             }
             return result;
+        }
+
+        static private void PrettyPrint(string json)
+        {
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine(JsonConvert.SerializeObject(JsonConvert.DeserializeObject(json), Formatting.Indented));
+            Console.ResetColor();
         }
 
         static void WriteHeader(string text)
