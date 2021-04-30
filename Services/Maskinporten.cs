@@ -72,6 +72,7 @@ namespace dan_client_dotnet.Services
 
         public async Task<string> GetAccessToken(bool useCache = true)
         {
+            // The access token can (and should) be reused as long as it is valid (ie. not expired).
             if (useCache && _cachedToken != null && _cachedTokenExpires > DateTime.UtcNow)
             {
                 WriteInfo("Using cached access token from Maskinporten");
@@ -80,7 +81,10 @@ namespace dan_client_dotnet.Services
 
             WriteInfo("Getting access token from Maskinporten");
 
+            // Create the JWT Grant that is the authenticated (signed) request we send to Maskinporten
             var assertion = GetJwtAssertion();
+            
+            // Get the access token from Maskinporten
             var (isError, token) = await GetTokenFromJwtBearerGrant(assertion);
 
             if (isError)
@@ -93,11 +97,14 @@ namespace dan_client_dotnet.Services
             }
             else
             {
+                // The received payload is a JSON object with several fields, the most important is the "access_token"-field,
+                // which includes the JWT we must use in requests to data.altinn.no
                 var tokenObject = JsonConvert.DeserializeObject<JObject>(token);
 
                 _cachedToken = tokenObject.GetValue("access_token").ToString();
                 _cachedTokenExpires = DateTime.UtcNow;
                 
+                // Attempt to parse the time-to-live-field, so that we can cache and reuse the token
                 if (int.TryParse(tokenObject.GetValue("expires_in").ToString(), out int expiresIn))
                 {
                     _cachedTokenExpires = _cachedTokenExpires.AddSeconds(expiresIn);
@@ -109,36 +116,46 @@ namespace dan_client_dotnet.Services
             }
         }
 
+        // This method creates a JWT Grant as specified on https://docs.digdir.no/maskinporten_protocol_jwtgrant.html
+        // The JWT-grant is the request we sendt to Maskinporten in order to get a access token. 
         private string GetJwtAssertion()
         {
             var dateTimeOffset = new DateTimeOffset(DateTime.UtcNow);
 
             var securityKey = new X509SecurityKey(_signingCertificate);
+            // The JWT has three parts: header, payload and signature which are base64-encoded JSON objects seperated by "."
+            // First we create a header containing the public part of the certificate we use to sign the JWT
+            // Maskinporten only supports the signing algorithm RSA-SHA256
             var header = new JwtHeader(new SigningCredentials(securityKey, SecurityAlgorithms.RsaSha256))
             {
                 {"x5c", new List<string>() {Convert.ToBase64String(_signingCertificate.GetRawCertData())}}
             };
 
+            // The library we use will include claims that will confuse Maskinporten, so remove them.
             header.Remove("typ");
             header.Remove("kid");
 
             var payload = new JwtPayload
             {
-                { "aud", _audience },
-                { "scope", _scopes },
-                { "iss", _issuer },
-                { "exp", dateTimeOffset.ToUnixTimeSeconds() + 60 },
-                { "iat", dateTimeOffset.ToUnixTimeSeconds() },
-                { "jti", Guid.NewGuid().ToString() },
+                { "aud", _audience }, // The environment in Maskinporten this requiest is for
+                { "scope", _scopes }, // What scopes we want
+                { "iss", _issuer }, // Note that "issuer" in this context is the client_id 
+
+                // The following is generic JWT information
+                { "exp", dateTimeOffset.ToUnixTimeSeconds() + 60 }, // expiry date for JWT Grant
+                { "iat", dateTimeOffset.ToUnixTimeSeconds() }, // JWT grant issued at
+                { "jti", Guid.NewGuid().ToString() }, // unique identifier for this JWT grant
             };
 
             var securityToken = new JwtSecurityToken(header, payload);
             var handler = new JwtSecurityTokenHandler();
 
+            // This signs the header and payload and returns the JWT as a string
             return handler.WriteToken(securityToken);
         }
 
 
+        // This sends a signed JWT Grant to the token-endpoint in Maskinporten as specified on https://docs.digdir.no/maskinporten_protocol_token.html
         private async Task<(bool, string)> GetTokenFromJwtBearerGrant(string assertion)
         {
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
@@ -153,10 +170,12 @@ namespace dan_client_dotnet.Services
             return await SendTokenRequest(formContent);
         }
 
+        // This does the actual request to Maskinporten. 
         private async Task<(bool, string)> SendTokenRequest(FormUrlEncodedContent formContent)
         {
             var client = new HttpClient();
             string responseString;
+            // In case something goes wrong, we can give the user a curl command replicating the request attempted making it easier to further debug what happened.
             CurlDebugCommand = "curl -v -X POST -d '" + formContent.ReadAsStringAsync().Result + "' " + _tokenEndpoint;
             try
             {
