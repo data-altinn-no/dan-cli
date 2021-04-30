@@ -4,10 +4,12 @@ client is twofold: To demonstrate how to effectively utilize the various functio
 
 # Requirements
 To use data.altinn.no and this client you will need the following
-1. A subscription key for the data.altinn.no API. A subscription key can be obtained at [data.altinn.no/](https://data.altinn.no/). For access to be granted you must describe how you intend to use the data obtained from data.altinn.no and which data-sets you request access too. 
-2. Configure a client in Maskinporten. In order to get a Maskinporten access token, you will need a Enterprise Certificate
-    - An Enterprise Certificate is a certificate that includes the organization number for your organization. Your organization must be registered in the Norwegian Entity Registry (Enhetsregisteret). A valid enterprise certificate can be ordered from Buypass or Commfides
-    - Maskinporten is a solution that guarantees the identity of entities exchanging data. It is the preferred method for machine to machine authentication [Information in Norwegian](https://samarbeid.digdir.no/maskinporten/maskinporten/25).   
+1. A subscription key for the data.altinn.no API. A subscription key can be obtained at [data.altinn.no](https://data.altinn.no). For access to be granted you must describe how you intend to use the data obtained from data.altinn.no and which data-sets you request access too. 
+2. A access token issued by [Maskinporten](https://samarbeid.digdir.no/maskinporten/maskinporten/25) with the scope `altinn:dataaltinnno`
+
+    - Follow these steps (in norwegian) to [sign up your organization to use Maskinporten as a consumer](https://samarbeid.digdir.no/maskinporten/konsument/119) and configure a client. This will give you a client-ID that must be entered in `appsettings.json`.
+    - To authenticate with Maskinporten you will need a Enterprise Certificate, which is a type of TLS client certificate that includes the organization number identifying you organization. Your organization must be registered in the Norwegian Entity Registry (Enhetsregisteret). A valid enterprise certificate can be ordered from [Buypass](https://www.buypass.no/produkter/virksomhetssertifikat-esegl/virksomhetssertifikat-for-norge) or [Commfides](https://www.commfides.com/commfides-virksomhetssertifikat/)
+
 3. Net Core 3.1 (or later) SDK or Visual Studio 2019
 
 
@@ -60,23 +62,27 @@ This section sets up the basic usage of the http client that will handle request
 
 ``` jsonc
 "HttpClientConfig": {
-    "SubscriptionKey": "xxxxxxxx", // Your subscription key
+    "SubscriptionKey": "xxxxxxxx", // Your subscription key obtained from step one in the "Requirements" section
     "BaseAddress": "https://api.data.altinn.no/v1/" // URL to the environment the requests will be sent to
-                                                               // Test : 'https://test-api.data.altinn.no/v1/'
-                                                               // Prod : 'https://api.data.altinn.no/v1/'
+                                                    // Test : 'https://test-api.data.altinn.no/v1/'
+                                                    // Prod : 'https://api.data.altinn.no/v1/'
 
   }
 ```
 
 ## CertificateConfig
-This section defines where the enterprise certificate is installed on your local machine, and which certificate the client should use to authenticate itself to data.altinn.no
+This section defines where the enterprise certificate is installed on your local machine, and which certificate the client should use to authenticate itself to data.altinn.no. You can either
+supply a thumbprint to use a certificate installed in Windows Certificate Store, or your can supply a path and password to a PKCS#12-file on disk.
 
 ``` jsonc
  "CertificateConfig": {
-    "Thumbprint": "xxxxxxxx",           // The Thumbprint of your certificate
+    "Thumbprint": "xxxxxxxx",           // The thumbprint of your certificate located in Windows Certificate Store. 
+                                        // To see a list of installed certificates installed in the "My" store in the "LocalMachine" location, run the following in Powershell: 
+                                        //   dir Cert:\LocalMachine\My
     "StoreLocation": "LocalMachine",    // The location of the certificate store where the certificate is installed. Allowed values are "LocalMachine" and "CurrentUser"
     "StoreName": "My",                  // The name of the certificate store where the certificate is installed. Allowed values are "My", "Root" and "CertificateAuthority".
-                                        // Note that in vast majority of cases the certificate should be installed in the certificate store called "LocalMachine" and the StoreName should be set to "My"
+                                        // Note that in vast majority of cases the certificate should be installed in the certificate store called "LocalMachine" and the 
+                                        // StoreName should be set to "My"
     "Pkcs12FilePath": "c:/cert.pfx",    // If you are not using Windows, you can supply a PKCS#12 file (usually *.pfx or *.p12) instead. Full path here. Leave "Thumbprint" empty to use.
     "Pkcs12FileSecret": "secret"        // Secret used to protect private key in PKCS#12-file
  }
@@ -85,7 +91,7 @@ This section defines where the enterprise certificate is installed on your local
 ## MaskinportenConfig
 ``` jsonc
  "MaskinportenConfig": {
-    "ClientId": "xxxxxx",               // Client-id as provided by Maskinporten. 
+    "ClientId": "xxxxxx",               // Client-id as provided by Maskinporten, obtained from step to in the "Requirements" section 
     "Scopes": "altinn:dataaltinnno",    // What scopes you request. Additional ones can be suppplied, seperated by space
     "Environment": "ver2"               // "ver2" = test environment, "prod" = production
  }
@@ -101,7 +107,7 @@ This section is used to decide what type of request that will be sent to data.al
 ```
 
 ### Supported requestTypes:
-Any type of request requires the client to be set up with a valid Subscription Key and either an Enterprise Certificate or a Maskinporten token. The client currently supports these request types:
+Any type of request requires the client to be set up with a valid Subscription Key and a Maskinporten client. The client currently supports these request types:
 
 ### Authorize
 Submit a request for access to a dataset. 
@@ -162,7 +168,7 @@ To request access to a dataset that requires the subject of the request to give 
 ```
 
 Please note that this client does not store the id of a created accreditation. If you intend to use the accreditation you create in additional requests to data.altinn.no you must copy the id
-from the response and store it yourself, for example as a value in the appsettings.json configuration file.
+from the response and store it yourself, for example as a value in the `appsettings.json` configuration file.
 
 When a request for accreditation has been processed, altinn.data.no returns a full accreditation object. This accreditation object will have a unique id that can be used to make subsequent requests 
 for the dataset described by the accreditation object.
