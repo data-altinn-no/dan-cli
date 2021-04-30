@@ -1,6 +1,5 @@
 # Introduction 
-This is a sample client for sending requests to data.altinn.no [information in Norwegian](https://www.altinndigital.no/produkter/data.altinn/). developed in .NET Core. The purpose of the sample
-client is twofold: To demonstrate how to effectively utilize the various functions available through data.altinn.no and to provide sample implementation for anyone wanting to write their own data.altinn.no client.
+This is a sample client for sending requests to [data.altinn.no](https://www.altinndigital.no/produkter/data.altinn/), developed in .NET Core. The purpose of the sample client is twofold: To demonstrate how to effectively utilize the various functions available through data.altinn.no and to provide sample implementation for anyone wanting to write their own data.altinn.no client.
 
 # Requirements
 To use data.altinn.no and this client you will need the following
@@ -177,7 +176,7 @@ To pass this id to the client, configure the Accreditation section like this:
 ``` jsonc
 {
   "Accreditation": {
-      accreditation_id: "xxxx-xxxxx-xxxxx-xxxxx" // The id of a valid accreditation
+      "accreditation_id": "xxxx-xxxxx-xxxxx-xxxxx" // The id of a valid accreditation
   }
 }
 ```
